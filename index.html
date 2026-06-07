@@ -758,7 +758,33 @@ body::before {
                 transform: translateY(calc(100% - var(--mobile-panel-peek)));
                 transition: transform 280ms ease;
             }
+#contactButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+
+  color: white;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.06),
+    inset 0 1px 10px rgba(255, 255, 255, 0.12);
+}
+
+#contactButton:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
             body.shop-open #shopPanel {
                 transform: translateY(0);
             }
@@ -899,6 +925,7 @@ body::before {
             <div class="panel-head">
                 <div>
                     <p class="eyebrow">V1 By Paracosmic Labs</p>
+                    <a id="contactButton" href="mailto:paracosmicsupport@gmail.com">Contact</a>
                     <h1 class="panel-title">Rainbow Balls</h1>
                     <p class="panel-subtitle">Boost clicks, automate the bounce field, add more balls, and prestige for
                         permanent power.</p>
