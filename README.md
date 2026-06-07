@@ -12,4 +12,4 @@ A chaotic rainbow ball simulation where every bounce makes the incident worse. T
 
 ## Play
 
-Coming soon.
+https://infinite-ball-incident.vercel.app/
