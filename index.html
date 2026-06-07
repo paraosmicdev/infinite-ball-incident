@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Infinite Ball Incident</title>
+    <style>
+        :root {
+            --desktop-panel-width: min(360px, 34vw);
+            --mobile-panel-height: min(58vh, 430px);
+            --mobile-panel-peek: 68px;
+            --glass-bg: rgba(14, 14, 18, 0.74);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-shadow: 0 18px 40px rgba(0, 0, 0, 0.34), 0 0 22px rgba(255, 255, 255, 0.04), inset 0 0 16px rgba(255, 255, 255, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            position: relative;
+            min-height: 100dvh;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            pointer-events: none;
+            padding: 5px;
+            background: conic-gradient(from 0deg,
+                    #ff004c,
+                    #ff8a00,
+                    #fff200,
+                    #00ff7b,
+                    #00d5ff,
+                    #7547ff,
+                    #ff00c8,
+                    #ff004c);
+            mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+            mask-composite: exclude;
+            -webkit-mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            animation: borderRainbow 4s linear infinite;
+            box-shadow:
+                inset 0 0 28px rgba(255, 255, 255, 0.22),
+                0 0 28px rgba(255, 0, 200, 0.35);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 18% 20%, rgba(255, 0, 102, 0.11), transparent 28%),
+                radial-gradient(circle at 82% 18%, rgba(0, 213, 255, 0.12), transparent 26%),
+                radial-gradient(circle at 50% 78%, rgba(255, 234, 0, 0.08), transparent 28%);
+            filter: blur(24px);
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: blur(16px) saturate(1.08);
+            -webkit-backdrop-filter: blur(16px) saturate(1.08);
+        }
+
+        #app {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        #hud {
+            position: fixed;
+            left: calc(12px + env(safe-area-inset-left));
+            top: calc(12px + env(safe-area-inset-top));
+            z-index: 30;
+            min-width: min(360px, calc(100vw - 24px));
+            max-width: min(520px, calc(100vw - 24px));
+            border-radius: 22px;
+            padding: 14px 16px 15px;
+        }
+
+        .eyebrow {
+            margin: 0 0 7px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .hud-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .hud-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .hud-coins {
+            margin: 0;
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+            text-shadow:
+                0 0 20px rgba(255, 255, 255, 0.18),
+                0 0 34px rgba(0, 213, 255, 0.12);
+            word-break: break-word;
+        }
+
+        .hud-subtitle {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.74);
+        }
+
+        .stat-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .stat-pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.92);
+            white-space: nowrap;
+        }
+
+        .hud-hint {
+            margin: 12px 0 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.62);
+        }
+
+        #maxAllTopButton {
+            position: fixed;
+            top: calc(14px + env(safe-area-inset-top));
+            right: calc(var(--desktop-panel-width) + 24px + env(safe-area-inset-right));
+            z-index: 55;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background:
+                linear-gradient(135deg, rgba(0, 213, 255, 0.22), rgba(255, 0, 200, 0.18)),
+                rgba(14, 14, 18, 0.78);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 950;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow:
+                0 0 22px rgba(0, 213, 255, 0.16),
+                0 0 28px rgba(255, 0, 200, 0.12),
+                inset 0 1px 12px rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(16px) saturate(1.08);
+            -webkit-backdrop-filter: blur(16px) saturate(1.08);
+            transition:
+                transform 120ms ease,
+                opacity 120ms ease,
+                border-color 120ms ease,
+                box-shadow 120ms ease;
+        }
+
+        #maxAllTopButton:hover {
+            transform: translateY(-1px) scale(1.02);
+            border-color: rgba(255, 255, 255, 0.28);
+            box-shadow:
+                0 0 26px rgba(0, 213, 255, 0.24),
+                0 0 34px rgba(255, 0, 200, 0.18),
+                inset 0 1px 12px rgba(255, 255, 255, 0.18);
+        }
+
+        #maxAllTopButton:active {
+            transform: scale(0.97);
+        }
+
+        #maxAllTopButton:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #gameArea {
+            position: fixed;
+            left: calc(12px + env(safe-area-inset-left));
+            top: calc(112px + env(safe-area-inset-top));
+            right: calc(var(--desktop-panel-width) + 12px + env(safe-area-inset-right));
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            z-index: 1;
+            overflow: hidden;
+            border-radius: 28px;
+            background:
+                linear-gradient(180deg, rgba(20, 20, 24, 0.45), rgba(3, 3, 4, 0.7)),
+                #000;
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+                inset 0 0 48px rgba(255, 255, 255, 0.03),
+                0 28px 48px rgba(0, 0, 0, 0.26);
+            transition: bottom 280ms ease;
+        }
+
+        #gameArea::before {
+            content: "";
+            position: absolute;
+            inset: -12%;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 0, 102, 0.12), transparent 22%),
+                radial-gradient(circle at 80% 25%, rgba(0, 213, 255, 0.12), transparent 20%),
+                radial-gradient(circle at 48% 72%, rgba(255, 234, 0, 0.09), transparent 22%);
+            filter: blur(42px);
+            animation: ambientDrift 14s linear infinite alternate;
+        }
+
+        #gameArea::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03), transparent 45%);
+            opacity: 0.7;
+        }
+
+        #ballsLayer,
+        #floatLayer {
+            position: absolute;
+            inset: 0;
+        }
+
+        #floatLayer {
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        .rainbow-ball {
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 4;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            touch-action: manipulation;
+            transform: translate3d(0, 0, 0);
+            will-change: transform;
+        }
+
+        .rainbow-ball:focus-visible {
+            outline: none;
+        }
+
+        .rainbow-ball:focus-visible .rainbow-core {
+            box-shadow:
+                0 0 0 2px rgba(255, 255, 255, 0.95),
+                0 0 26px rgba(0, 213, 255, 0.4),
+                0 0 58px rgba(255, 0, 200, 0.32);
+        }
+
+        .rainbow-core {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            overflow: hidden;
+            isolation: isolate;
+            box-shadow:
+                0 0 20px rgba(255, 0, 200, 0.55),
+                0 0 44px rgba(0, 213, 255, 0.32),
+                0 0 82px rgba(255, 242, 0, 0.14);
+            transition:
+                transform 130ms ease,
+                box-shadow 130ms ease,
+                filter 130ms ease;
+        }
+
+        .rainbow-core::before {
+            content: "";
+            position: absolute;
+            inset: -72%;
+            z-index: -2;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.96), transparent 10%),
+                radial-gradient(circle at 70% 25%, #ff005d, transparent 22%),
+                radial-gradient(circle at 35% 75%, #00f5ff, transparent 24%),
+                radial-gradient(circle at 80% 78%, #ffea00, transparent 22%),
+                conic-gradient(from 0deg,
+                    #ff004c,
+                    #ff8a00,
+                    #fff200,
+                    #00ff7b,
+                    #00d5ff,
+                    #7547ff,
+                    #ff00c8,
+                    #ff004c);
+            animation:
+                liquidSpin var(--spin-duration, 5s) linear infinite,
+                liquidDrift var(--drift-duration, 3.4s) ease-in-out infinite alternate;
+            filter: saturate(1.35) contrast(1.18);
+        }
+
+        .rainbow-core::after {
+            content: "";
+            position: absolute;
+            inset: 7%;
+            z-index: -1;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.9), transparent 12%),
+                radial-gradient(circle at 55% 70%, rgba(255, 255, 255, 0.14), transparent 34%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(0, 0, 0, 0.22));
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+
+        .rainbow-ball:hover .rainbow-core {
+            filter: brightness(1.08);
+        }
+
+        .rainbow-ball.clicked .rainbow-core {
+            transform: scale(0.88);
+            filter: brightness(1.24);
+            box-shadow:
+                0 0 28px rgba(255, 255, 255, 0.76),
+                0 0 62px rgba(0, 213, 255, 0.58),
+                0 0 104px rgba(255, 0, 200, 0.34);
+        }
+
+        .float-text {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            color: #fff;
+            white-space: nowrap;
+            text-shadow:
+                0 0 12px rgba(255, 255, 255, 0.84),
+                0 0 24px rgba(0, 213, 255, 0.44),
+                0 0 38px rgba(255, 0, 200, 0.22);
+            animation: floatUp 850ms ease-out forwards;
+        }
+
+        #shopPanel {
+            position: fixed;
+            top: calc(12px + env(safe-area-inset-top));
+            right: calc(12px + env(safe-area-inset-right));
+            bottom: calc(12px + env(safe-area-inset-bottom));
+            width: var(--desktop-panel-width);
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-radius: 26px;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 18px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .panel-title {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+        }
+
+        .panel-subtitle {
+            margin: 6px 0 0;
+            font-size: 13px;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.74);
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        .icon-button {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 999px;
+            background: linear-gradient(145deg, rgba(40, 40, 48, 0.95), rgba(10, 10, 12, 0.95));
+            color: #fff;
+            font-size: 20px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow:
+                0 0 14px rgba(255, 255, 255, 0.06),
+                inset 0 1px 10px rgba(255, 255, 255, 0.12);
+            transition: transform 120ms ease, opacity 120ms ease;
+            flex-shrink: 0;
+        }
+
+        .icon-button:hover {
+            transform: scale(1.05);
+        }
+
+        .icon-button:active {
+            transform: scale(0.94);
+        }
+
+        .panel-scroll {
+            flex: 1;
+            overflow: auto;
+            padding: 14px;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+        }
+
+        .panel-scroll::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .panel-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .shop-item {
+            margin-bottom: 12px;
+            padding: 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.085);
+            box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.03);
+            transition:
+                border-color 140ms ease,
+                box-shadow 140ms ease,
+                transform 140ms ease;
+        }
+
+        .shop-item.affordable {
+            border-color: rgba(0, 255, 170, 0.24);
+            box-shadow:
+                0 0 24px rgba(0, 255, 170, 0.06),
+                inset 0 0 14px rgba(255, 255, 255, 0.05);
+        }
+
+        .shop-item-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .shop-item h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        .shop-item p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.72);
+        }
+
+        .level-badge,
+        .save-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.95);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .item-grid {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .item-label {
+            color: rgba(255, 255, 255, 0.62);
+            flex-shrink: 0;
+        }
+
+        .item-value {
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .buy-button,
+        .secondary-button,
+        .danger-button {
+            width: 100%;
+            margin-top: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            transition:
+                transform 120ms ease,
+                opacity 120ms ease,
+                box-shadow 120ms ease,
+                border-color 120ms ease;
+        }
+
+        .buy-button,
+        .secondary-button {
+            background: linear-gradient(160deg, rgba(40, 40, 48, 0.95), rgba(9, 9, 11, 0.95));
+            box-shadow:
+                0 0 16px rgba(255, 255, 255, 0.06),
+                inset 0 1px 10px rgba(255, 255, 255, 0.12);
+        }
+
+        .secondary-button {
+            background: linear-gradient(160deg, rgba(68, 31, 96, 0.95), rgba(13, 11, 20, 0.95));
+            box-shadow:
+                0 0 18px rgba(173, 92, 255, 0.16),
+                inset 0 1px 10px rgba(255, 255, 255, 0.12);
+        }
+
+        .danger-button {
+            background: linear-gradient(160deg, rgba(110, 20, 54, 0.95), rgba(20, 10, 14, 0.95));
+            box-shadow:
+                0 0 18px rgba(255, 74, 124, 0.14),
+                inset 0 1px 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .buy-button:hover,
+        .secondary-button:hover,
+        .danger-button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.24);
+        }
+
+        .buy-button:active,
+        .secondary-button:active,
+        .danger-button:active {
+            transform: scale(0.98);
+        }
+
+        .buy-button:disabled,
+        .secondary-button:disabled,
+        .danger-button:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .prestige-card {
+            background:
+                linear-gradient(180deg, rgba(88, 34, 122, 0.22), rgba(14, 12, 20, 0.7)),
+                rgba(255, 255, 255, 0.035);
+        }
+
+        .footer-card {
+            margin-bottom: 0;
+        }
+
+        .footer-actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        #shopToggle {
+            display: none;
+        }
+
+        .toggle-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #00d5ff, #ff00c8);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 900;
+            box-shadow: 0 0 16px rgba(0, 213, 255, 0.32);
+        }
+
+        @keyframes liquidSpin {
+            from {
+                rotate: 0deg;
+                filter: hue-rotate(0deg) saturate(1.35) contrast(1.18);
+            }
+
+            to {
+                rotate: 360deg;
+                filter: hue-rotate(360deg) saturate(1.35) contrast(1.18);
+            }
+        }
+
+        @keyframes liquidDrift {
+            from {
+                transform: translate3d(-5%, -4%, 0) scale(1.08);
+            }
+
+            to {
+                transform: translate3d(5%, 4%, 0) scale(1.22);
+            }
+        }
+
+        @keyframes borderRainbow {
+            from {
+                filter: hue-rotate(0deg);
+            }
+
+            to {
+                filter: hue-rotate(360deg);
+            }
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -35%) scale(0.92);
+            }
+
+            12% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -170%) scale(1.05);
+            }
+        }
+
+        @keyframes ambientDrift {
+            from {
+                transform: translate3d(-2%, -1%, 0) scale(1);
+            }
+
+            to {
+                transform: translate3d(2%, 1%, 0) scale(1.08);
+            }
+        }
+
+        @media (max-width: 900px) {
+            #hud {
+                left: calc(10px + env(safe-area-inset-left));
+                right: calc(10px + env(safe-area-inset-right));
+                max-width: none;
+                min-width: 0;
+            }
+
+            #maxAllTopButton {
+                top: calc(14px + env(safe-area-inset-top));
+                right: calc(14px + env(safe-area-inset-right));
+                min-height: 40px;
+                padding: 0 13px;
+                font-size: 11px;
+            }
+
+            #gameArea {
+                left: calc(10px + env(safe-area-inset-left));
+                right: calc(10px + env(safe-area-inset-right));
+                top: calc(138px + env(safe-area-inset-top));
+                bottom: calc(84px + env(safe-area-inset-bottom));
+            }
+
+            body.shop-open #gameArea {
+                bottom: calc(var(--mobile-panel-height) + 18px + env(safe-area-inset-bottom));
+            }
+
+            #shopPanel {
+                left: calc(10px + env(safe-area-inset-left));
+                right: calc(10px + env(safe-area-inset-right));
+                top: auto;
+                bottom: calc(10px + env(safe-area-inset-bottom));
+                width: auto;
+                height: var(--mobile-panel-height);
+                transform: translateY(calc(100% - var(--mobile-panel-peek)));
+                transition: transform 280ms ease;
+            }
+
+            body.shop-open #shopPanel {
+                transform: translateY(0);
+            }
+
+            .mobile-only {
+                display: inline-flex;
+            }
+
+            #shopToggle {
+                position: fixed;
+                left: 50%;
+                bottom: calc(18px + env(safe-area-inset-bottom));
+                transform: translateX(-50%);
+                z-index: 45;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                min-height: 50px;
+                padding: 12px 18px;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 999px;
+                color: #fff;
+                font-size: 14px;
+                font-weight: 900;
+                cursor: pointer;
+                transition: bottom 280ms ease, transform 120ms ease;
+            }
+
+            body.shop-open #shopToggle {
+                bottom: calc(var(--mobile-panel-height) + 18px + env(safe-area-inset-bottom));
+            }
+
+            #shopToggle:active {
+                transform: translateX(-50%) scale(0.98);
+            }
+        }
+
+        @media (max-width: 640px) {
+            body::before {
+                padding: 4px;
+            }
+
+            #hud {
+                padding: 12px 14px 13px;
+            }
+
+            .hud-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .hud-coins {
+                font-size: clamp(25px, 7vw, 36px);
+            }
+
+            .panel-head {
+                padding: 16px 16px 12px;
+            }
+
+            .panel-title {
+                font-size: 24px;
+            }
+
+            .panel-scroll {
+                padding: 12px;
+            }
+
+            .shop-item {
+                padding: 13px;
+            }
+
+            .shop-item-title-row {
+                flex-direction: column;
+            }
+
+            .level-badge,
+            .save-pill {
+                align-self: flex-start;
+            }
+
+            .item-row {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .item-value {
+                text-align: left;
+            }
+
+            #maxAllTopButton {
+                min-height: 34px;
+                padding: 0 10px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="hud" class="glass">
+            <p class="eyebrow">Incremental Reactor</p>
+            <div class="hud-header">
+                <div>
+                    <p class="hud-title">Coins</p>
+                    <p class="hud-coins" id="coinsValue">0</p>
+                    <p class="hud-subtitle" id="cpsValue">0 / sec</p>
+                </div>
+                <div class="stat-pills">
+                    <div class="stat-pill" id="clickValuePill">1 / click</div>
+                    <div class="stat-pill" id="ballsPill">1 ball</div>
+                    <div class="stat-pill" id="multiplierPill">x1 gain</div>
+                    <div class="stat-pill" id="prismsPill">0 Prisms</div>
+                </div>
+            </div>
+            <p class="hud-hint">Tap the bouncing rainbow balls to power the shop.</p>
+        </div>
+        <button id="maxAllTopButton" type="button">Max All</button>
+
+        <main id="gameArea" aria-label="Rainbow ball play area">
+            <div id="ballsLayer"></div>
+            <div id="floatLayer"></div>
+        </main>
+
+        <button id="shopToggle" class="glass" type="button" aria-controls="shopPanel" aria-expanded="false">
+            <span class="toggle-content">
+                <span id="shopToggleLabel">Show Shop</span>
+                <span id="shopToggleArrow">▲</span>
+            </span>
+            <span class="toggle-badge" id="shopBadge" hidden>0</span>
+        </button>
+
+        <aside id="shopPanel" class="glass" aria-label="Upgrade shop">
+            <div class="panel-head">
+                <div>
+                    <p class="eyebrow">Upgrade Shop</p>
+                    <h1 class="panel-title">Rainbow Balls</h1>
+                    <p class="panel-subtitle">Boost clicks, automate the bounce field, add more balls, and prestige for
+                        permanent power.</p>
+                </div>
+                <button class="icon-button mobile-only" id="closeShopButton" type="button"
+                    aria-label="Close shop">×</button>
+            </div>
+
+            <div class="panel-scroll">
+                <section class="shop-item" id="item-clickPower">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Click Power</h2>
+                            <p>Manual clicks earn more coins. Virtual clicks use the same value too.</p>
+                        </div>
+                        <div class="level-badge" id="clickPowerLevel">Lv 0</div>
+                    </div>
+                    <div class="item-grid">
+                        <div class="item-row"><span class="item-label">Effect</span><span class="item-value"
+                                id="clickPowerEffect">1 / click</span></div>
+                        <div class="item-row"><span class="item-label">Cost</span><span class="item-value"
+                                id="clickPowerCost">10</span></div>
+                    </div>
+                    <button class="buy-button" id="buyClickPower" type="button">Buy Upgrade</button>
+                </section>
+
+                <section class="shop-item" id="item-autoBall">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Auto-Ball</h2>
+                            <p>Adds 1 auto-clicker per level. Auto output scales with your ball count.</p>
+                        </div>
+                        <div class="level-badge" id="autoBallLevel">Lv 0</div>
+                    </div>
+                    <div class="item-grid">
+                        <div class="item-row"><span class="item-label">Effect</span><span class="item-value"
+                                id="autoBallEffect">0 auto-clicks / sec</span></div>
+                        <div class="item-row"><span class="item-label">Cost</span><span class="item-value"
+                                id="autoBallCost">35</span></div>
+                    </div>
+                    <button class="buy-button" id="buyAutoBall" type="button">Buy Upgrade</button>
+                </section>
+
+                <section class="shop-item" id="item-ballSpeed">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Ball Speed</h2>
+                            <p>Speeds up every bounce and also boosts automated output.</p>
+                        </div>
+                        <div class="level-badge" id="ballSpeedLevel">Lv 0</div>
+                    </div>
+                    <div class="item-grid">
+                        <div class="item-row"><span class="item-label">Effect</span><span class="item-value"
+                                id="ballSpeedEffect">Bounce x1 • Auto x1</span></div>
+                        <div class="item-row"><span class="item-label">Cost</span><span class="item-value"
+                                id="ballSpeedCost">25</span></div>
+                    </div>
+                    <button class="buy-button" id="buyBallSpeed" type="button">Buy Upgrade</button>
+                </section>
+
+                <section class="shop-item" id="item-ballCount">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Ball Count</h2>
+                            <p>Adds another rainbow ball to the field. More balls means more click targets and stronger
+                                automation.</p>
+                        </div>
+                        <div class="level-badge" id="ballCountLevel">Lv 0</div>
+                    </div>
+                    <div class="item-grid">
+                        <div class="item-row"><span class="item-label">Effect</span><span class="item-value"
+                                id="ballCountEffect">1 ball</span></div>
+                        <div class="item-row"><span class="item-label">Cost</span><span class="item-value"
+                                id="ballCountCost">80</span></div>
+                    </div>
+                    <button class="buy-button" id="buyBallCount" type="button">Buy Upgrade</button>
+                </section>
+
+                <section class="shop-item prestige-card" id="prestigeCard">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Prestige</h2>
+                            <p>Reset coins and upgrades for permanent Prisms. Each Prism increases all coin gain by 15%.
+                            </p>
+                        </div>
+                        <div class="level-badge" id="prismCountBadge">0 Prisms</div>
+                    </div>
+                    <div class="item-grid">
+                        <div class="item-row"><span class="item-label">Permanent Effect</span><span class="item-value"
+                                id="prestigeEffect">x1 gain</span></div>
+                        <div class="item-row"><span class="item-label">This Run</span><span class="item-value"
+                                id="runCoinsValue">0 coins</span></div>
+                        <div class="item-row"><span class="item-label">Reset Gain</span><span class="item-value"
+                                id="prestigeGain">Need 2.5K run coins</span></div>
+                    </div>
+                    <button class="secondary-button" id="prestigeButton" type="button" disabled>Prestige Locked</button>
+                </section>
+
+                <section class="shop-item footer-card">
+                    <div class="shop-item-title-row">
+                        <div>
+                            <h2>Save Data</h2>
+                            <p>Your progress autosaves in this browser using local storage.</p>
+                        </div>
+                        <div class="save-pill" id="saveStatus">Autosave On</div>
+                    </div>
+                    <div class="footer-actions">
+                        <button class="danger-button" id="hardResetButton" type="button">Hard Reset</button>
+                    </div>
+                </section>
+            </div>
+        </aside>
+    </div>
+    <script> (() => { const SAVE_KEY = "rainbow-reactor-idle-save-v1"; const MAX_BALLS = 32; const BASE_BALL_SPEED = 185; const AUTO_SAVE_INTERVAL = 4; const PRESTIGE_DIVISOR = 2500; const stateDefaults = () => ({ version: 1, coins: 0, totalCoins: 0, runCoins: 0, prisms: 0, upgrades: { clickPower: 0, autoBall: 0, ballSpeed: 0, ballCount: 0 }, savedAt: Date.now() }); const refs = { gameArea: document.getElementById("gameArea"), ballsLayer: document.getElementById("ballsLayer"), floatLayer: document.getElementById("floatLayer"), shopPanel: document.getElementById("shopPanel"), shopToggle: document.getElementById("shopToggle"), shopToggleLabel: document.getElementById("shopToggleLabel"), shopToggleArrow: document.getElementById("shopToggleArrow"), shopBadge: document.getElementById("shopBadge"), closeShopButton: document.getElementById("closeShopButton"), maxAllTopButton: document.getElementById("maxAllTopButton"), coinsValue: document.getElementById("coinsValue"), cpsValue: document.getElementById("cpsValue"), clickValuePill: document.getElementById("clickValuePill"), ballsPill: document.getElementById("ballsPill"), multiplierPill: document.getElementById("multiplierPill"), prismsPill: document.getElementById("prismsPill"), saveStatus: document.getElementById("saveStatus"), prismCountBadge: document.getElementById("prismCountBadge"), prestigeEffect: document.getElementById("prestigeEffect"), runCoinsValue: document.getElementById("runCoinsValue"), prestigeGain: document.getElementById("prestigeGain"), prestigeButton: document.getElementById("prestigeButton"), hardResetButton: document.getElementById("hardResetButton"), upgrades: { clickPower: { item: document.getElementById("item-clickPower"), level: document.getElementById("clickPowerLevel"), effect: document.getElementById("clickPowerEffect"), cost: document.getElementById("clickPowerCost"), button: document.getElementById("buyClickPower") }, autoBall: { item: document.getElementById("item-autoBall"), level: document.getElementById("autoBallLevel"), effect: document.getElementById("autoBallEffect"), cost: document.getElementById("autoBallCost"), button: document.getElementById("buyAutoBall") }, ballSpeed: { item: document.getElementById("item-ballSpeed"), level: document.getElementById("ballSpeedLevel"), effect: document.getElementById("ballSpeedEffect"), cost: document.getElementById("ballSpeedCost"), button: document.getElementById("buyBallSpeed") }, ballCount: { item: document.getElementById("item-ballCount"), level: document.getElementById("ballCountLevel"), effect: document.getElementById("ballCountEffect"), cost: document.getElementById("ballCountCost"), button: document.getElementById("buyBallCount") } } }; const upgradeDefs = { clickPower: { max: Infinity, cost: level => Math.ceil(10 * Math.pow(1.17, level) + level * 2) }, autoBall: { max: Infinity, cost: level => Math.ceil(35 * Math.pow(1.32, level) + level * 8) }, ballSpeed: { max: Infinity, cost: level => Math.ceil(25 * Math.pow(1.24, level) + level * 5) }, ballCount: { max: MAX_BALLS - 1, cost: level => Math.ceil(80 * Math.pow(1.42, level) + level * 18) } }; const mobileMedia = window.matchMedia("(max-width: 900px)"); let state = loadState(); let balls = []; let playBounds = { width: 0, height: 0, left: 0, top: 0 }; let lastFrameTime = performance.now(); let uiDirty = true; let autoClickBuffer = 0; let saveAccumulator = 0; let uiAccumulator = 0; let mobileShopOpen = false; function clamp(value, min, max) { return Math.min(Math.max(value, min), max); } function sanitizeNumber(value, fallback = 0, min = 0, max = Number.POSITIVE_INFINITY) { const numeric = Number(value); if (!Number.isFinite(numeric)) return fallback; return clamp(numeric, min, max); } function roundGameNumber(value) { return Math.round((value + Number.EPSILON) * 1000000) / 1000000; } function trimFixedString(value) { return value.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, ""); } function formatNumber(value) { if (!Number.isFinite(value)) return "∞"; const sign = value < 0 ? "-" : ""; const abs = Math.abs(value); if (abs < 1000) { const decimals = abs >= 100 ? (Number.isInteger(abs) ? 0 : 1) : abs >= 10 ? (Number.isInteger(abs) ? 0 : 2) : Number.isInteger(abs) ? 0 : 2; return sign + trimFixedString(abs.toFixed(decimals)); } const units = ["K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"]; let scaled = abs; let unitIndex = -1; while (scaled >= 1000 && unitIndex < units.length - 1) { scaled /= 1000; unitIndex += 1; } const decimals = scaled >= 100 ? 1 : scaled >= 10 ? 2 : 2; return sign + trimFixedString(scaled.toFixed(decimals)) + units[unitIndex]; } function pluralize(count, singular, plural) { return `${formatNumber(count)} ${Math.abs(count) === 1 ? singular : plural}`; } function safeSetSaveStatus(text) { refs.saveStatus.textContent = text; } function loadState() { const fallback = stateDefaults(); try { const raw = localStorage.getItem(SAVE_KEY); if (!raw) return fallback; const parsed = JSON.parse(raw); const loaded = stateDefaults(); loaded.coins = sanitizeNumber(parsed.coins, 0, 0); loaded.totalCoins = sanitizeNumber(parsed.totalCoins, loaded.coins, 0); loaded.runCoins = sanitizeNumber(parsed.runCoins, loaded.coins, 0); loaded.prisms = Math.floor(sanitizeNumber(parsed.prisms, 0, 0)); loaded.savedAt = sanitizeNumber(parsed.savedAt, Date.now(), 0); const upgrades = parsed && parsed.upgrades ? parsed.upgrades : {}; loaded.upgrades.clickPower = Math.floor(sanitizeNumber(upgrades.clickPower, 0, 0)); loaded.upgrades.autoBall = Math.floor(sanitizeNumber(upgrades.autoBall, 0, 0)); loaded.upgrades.ballSpeed = Math.floor(sanitizeNumber(upgrades.ballSpeed, 0, 0)); loaded.upgrades.ballCount = Math.floor(sanitizeNumber(upgrades.ballCount, 0, 0, MAX_BALLS - 1)); return loaded; } catch (error) { return fallback; } } function saveState() { try { state.savedAt = Date.now(); localStorage.setItem(SAVE_KEY, JSON.stringify(state)); safeSetSaveStatus("Autosave On"); } catch (error) { safeSetSaveStatus("Save Unavailable"); } } function getBallCount(currentState = state) { return 1 + currentState.upgrades.ballCount; } function getPrestigeMultiplier(currentState = state) { return roundGameNumber(1 + currentState.prisms * 0.15); } function getClickValue(currentState = state) { return roundGameNumber((1 + currentState.upgrades.clickPower) * getPrestigeMultiplier(currentState)); } function getBallSpeedMultiplier(currentState = state) { return roundGameNumber(1 + currentState.upgrades.ballSpeed * 0.12); } function getAutoSpeedMultiplier(currentState = state) { return roundGameNumber(1 + currentState.upgrades.ballSpeed * 0.1); } function getAutoClicksPerSecond(currentState = state) { return roundGameNumber(currentState.upgrades.autoBall * getBallCount(currentState) * getAutoSpeedMultiplier(currentState)); } function getCoinsPerSecond(currentState = state) { return roundGameNumber(getAutoClicksPerSecond(currentState) * getClickValue(currentState)); } function getPrestigeGain(currentState = state) { return Math.floor(Math.sqrt(currentState.runCoins / PRESTIGE_DIVISOR)); } function getNextPrestigeThreshold(currentState = state) { const nextLevel = getPrestigeGain(currentState) + 1; return PRESTIGE_DIVISOR * nextLevel * nextLevel; } function getUpgradeCost(key, level = state.upgrades[key]) { return upgradeDefs[key].cost(level); } function canAfford(cost) { return state.coins + 1e-9 >= cost; } function canBuyUpgrade(key) { const definition = upgradeDefs[key]; const level = state.upgrades[key]; if (level >= definition.max) return false; return canAfford(getUpgradeCost(key, level)); } function randomDirection() { const angle = Math.random() * Math.PI * 2; return { x: Math.cos(angle), y: Math.sin(angle) }; } function getStrongRandomDirection() { let direction = randomDirection(); while (Math.abs(direction.x) < 0.28 || Math.abs(direction.y) < 0.28) { direction = randomDirection(); } return direction; } function refreshPlayBounds() { const rect = refs.gameArea.getBoundingClientRect(); playBounds = { width: Math.max(0, rect.width), height: Math.max(0, rect.height), left: rect.left, top: rect.top }; } function computeBaseBallSize() { const shortSide = Math.max(320, Math.min(playBounds.width || window.innerWidth, playBounds.height || window.innerHeight)); const count = Math.max(1, getBallCount()); const spacing = count <= 4 ? 4.4 : count <= 10 ? 5.4 : count <= 18 ? 6.7 : count <= 26 ? 8.1 : 9.9; return clamp(shortSide / spacing, 44, 118); } function updateBallSize(ball, baseSize = computeBaseBallSize()) { ball.size = clamp(baseSize * ball.sizeFactor, 40, 120); ball.el.style.width = `${ball.size}px`; ball.el.style.height = `${ball.size}px`; } function findSpawnPosition(size) { const maxX = Math.max(0, playBounds.width - size); const maxY = Math.max(0, playBounds.height - size); if (!balls.length) { return { x: Math.random() * maxX, y: Math.random() * maxY }; } for (let attempt = 0; attempt < 20; attempt += 1) { const x = Math.random() * maxX; const y = Math.random() * maxY; let overlap = false; for (const other of balls) { const dx = x + size * 0.5 - (other.x + other.size * 0.5); const dy = y + size * 0.5 - (other.y + other.size * 0.5); const minDistance = (size + other.size) * 0.42; if (dx * dx + dy * dy < minDistance * minDistance) { overlap = true; break; } } if (!overlap) { return { x, y }; } } return { x: Math.random() * maxX, y: Math.random() * maxY }; } function createBall(index) { const el = document.createElement("button"); el.type = "button"; el.className = "rainbow-ball"; el.setAttribute("aria-label", `Rainbow ball ${index + 1}`); const core = document.createElement("span"); core.className = "rainbow-core"; el.appendChild(core); el.style.setProperty("--spin-duration", `${(4.2 + Math.random() * 2.3).toFixed(2)}s`); el.style.setProperty("--drift-duration", `${(2.8 + Math.random() * 1.8).toFixed(2)}s`); const direction = getStrongRandomDirection(); const speedVariation = 0.84 + Math.random() * 0.34; const ball = { el, size: 0, sizeFactor: 0.84 + Math.random() * 0.32, x: 0, y: 0, vx: direction.x * BASE_BALL_SPEED * speedVariation, vy: direction.y * BASE_BALL_SPEED * speedVariation, pressTimer: null }; updateBallSize(ball); const spawn = findSpawnPosition(ball.size); ball.x = spawn.x; ball.y = spawn.y; el.addEventListener("click", event => { handleBallClick(ball, event); }); renderBall(ball); return ball; } function renderBall(ball) { ball.el.style.transform = `translate3d(${ball.x.toFixed(2)}px, ${ball.y.toFixed(2)}px, 0)`; } function relabelBalls() { balls.forEach((ball, index) => { ball.el.setAttribute("aria-label", `Rainbow ball ${index + 1}`); }); } function updateAllBallSizes() { const baseSize = computeBaseBallSize(); for (const ball of balls) { updateBallSize(ball, baseSize); } } function clampAllBallsToBounds() { for (const ball of balls) { const maxX = Math.max(0, playBounds.width - ball.size); const maxY = Math.max(0, playBounds.height - ball.size); ball.x = clamp(ball.x, 0, maxX); ball.y = clamp(ball.y, 0, maxY); renderBall(ball); } } function syncBalls() { const targetCount = getBallCount(); if (balls.length < targetCount) { const fragment = document.createDocumentFragment(); while (balls.length < targetCount) { const ball = createBall(balls.length); balls.push(ball); fragment.appendChild(ball.el); } refs.ballsLayer.appendChild(fragment); } while (balls.length > targetCount) { const removed = balls.pop(); if (removed.pressTimer) clearTimeout(removed.pressTimer); removed.el.remove(); } updateAllBallSizes(); clampAllBallsToBounds(); relabelBalls(); } function moveAxis(position, velocity, delta, max) { if (max <= 0) { return { position: 0, velocity }; } let nextPosition = position + delta; let nextVelocity = velocity; while (nextPosition < 0 || nextPosition > max) { if (nextPosition < 0) { nextPosition = -nextPosition; nextVelocity = Math.abs(nextVelocity); } else if (nextPosition > max) { nextPosition = 2 * max - nextPosition; nextVelocity = -Math.abs(nextVelocity); } } return { position: nextPosition, velocity: nextVelocity }; } function pulseBall(ball) { ball.el.classList.add("clicked"); if (ball.pressTimer) clearTimeout(ball.pressTimer); ball.pressTimer = setTimeout(() => { ball.el.classList.remove("clicked"); }, 135); } function spawnFloatText(clientX, clientY, text) { const localX = clientX - playBounds.left; const localY = clientY - playBounds.top; if (localX < 0 || localY < 0 || localX > playBounds.width || localY > playBounds.height) { return; } const node = document.createElement("div"); node.className = "float-text"; node.textContent = text; node.style.left = `${localX}px`; node.style.top = `${localY}px`; refs.floatLayer.appendChild(node); node.addEventListener("animationend", () => node.remove(), { once: true }); } function addCoins(amount) { if (!(amount > 0)) return; state.coins = roundGameNumber(state.coins + amount); state.totalCoins = roundGameNumber(state.totalCoins + amount); state.runCoins = roundGameNumber(state.runCoins + amount); uiDirty = true; } function handleBallClick(ball, event) { const gain = getClickValue(); addCoins(gain); pulseBall(ball); spawnFloatText(event.clientX, event.clientY, `+${formatNumber(gain)}`); } function buyUpgrade(key) { const definition = upgradeDefs[key]; const currentLevel = state.upgrades[key]; if (currentLevel >= definition.max) return false; const cost = getUpgradeCost(key, currentLevel); if (!canAfford(cost)) return false; state.coins = roundGameNumber(Math.max(0, state.coins - cost)); state.upgrades[key] += 1; if (key === "ballCount") { syncBalls(); } uiDirty = true; saveState(); return true; } function buyMaxAll() { let purchases = 0; let safety = 0; const keys = Object.keys(upgradeDefs); while (safety < 10000) { safety += 1; const affordableKeys = keys.filter(key => canBuyUpgrade(key)).sort((a, b) => getUpgradeCost(a) - getUpgradeCost(b)); if (!affordableKeys.length) break; const key = affordableKeys[0]; const bought = buyUpgrade(key); if (!bought) break; purchases += 1; } if (purchases > 0) { refs.maxAllTopButton.textContent = `Bought ${purchases}`; setTimeout(() => { refs.maxAllTopButton.textContent = "Max All"; }, 700); syncBalls(); uiDirty = true; saveState(); } } function performPrestige() { const gain = getPrestigeGain(); if (gain <= 0) return; const nextMultiplier = roundGameNumber(1 + (state.prisms + gain) * 0.15); const confirmed = window.confirm(`Prestige reset for ${pluralize(gain, "Prism", "Prisms")}?\n\nThis will reset coins and upgrades, but keep a permanent x${formatNumber(nextMultiplier)} gain multiplier.`); if (!confirmed) return; state.prisms += gain; state.coins = 0; state.runCoins = 0; state.upgrades.clickPower = 0; state.upgrades.autoBall = 0; state.upgrades.ballSpeed = 0; state.upgrades.ballCount = 0; autoClickBuffer = 0; syncBalls(); uiDirty = true; saveState(); } function performHardReset() { const confirmed = window.confirm("Hard reset your save? This will permanently erase all coins, upgrades, and Prisms in this browser."); if (!confirmed) return; const confirmedAgain = window.confirm("Final confirmation: erase everything and restart from zero?"); if (!confirmedAgain) return; state = stateDefaults(); autoClickBuffer = 0; balls.forEach(ball => { if (ball.pressTimer) clearTimeout(ball.pressTimer); ball.el.remove(); }); refs.floatLayer.textContent = ""; balls = []; syncBalls(); uiDirty = true; try { localStorage.removeItem(SAVE_KEY); safeSetSaveStatus("Save Cleared"); } catch (error) { safeSetSaveStatus("Save Unavailable"); } saveState(); } function getAffordableCount() { let count = 0; for (const key of Object.keys(upgradeDefs)) { if (canBuyUpgrade(key)) count += 1; } if (getPrestigeGain() > 0) count += 1; return count; } function updateShopToggle() { if (!mobileMedia.matches) return; const open = document.body.classList.contains("shop-open"); refs.shopToggleLabel.textContent = open ? "Hide Shop" : "Show Shop"; refs.shopToggleArrow.textContent = open ? "▼" : "▲"; refs.shopToggle.setAttribute("aria-expanded", String(open)); const affordable = getAffordableCount(); refs.shopBadge.hidden = affordable <= 0; if (affordable > 0) { refs.shopBadge.textContent = String(affordable); } } function renderUI() { refs.coinsValue.textContent = formatNumber(state.coins); refs.cpsValue.textContent = `${formatNumber(getCoinsPerSecond())} / sec`; refs.clickValuePill.textContent = `${formatNumber(getClickValue())} / click`; refs.ballsPill.textContent = `${getBallCount()} ${getBallCount() === 1 ? "ball" : "balls"}`; refs.multiplierPill.textContent = `x${formatNumber(getPrestigeMultiplier())} gain`; refs.prismsPill.textContent = `${formatNumber(state.prisms)} ${state.prisms === 1 ? "Prism" : "Prisms"}`; for (const [key, definition] of Object.entries(upgradeDefs)) { const level = state.upgrades[key]; const upgradeRefs = refs.upgrades[key]; const isMaxed = level >= definition.max; const cost = getUpgradeCost(key, level); upgradeRefs.level.textContent = isMaxed && Number.isFinite(definition.max) ? `Lv ${level} / Max` : `Lv ${level}`; upgradeRefs.cost.textContent = isMaxed ? "MAX" : formatNumber(cost); upgradeRefs.button.disabled = !canBuyUpgrade(key); upgradeRefs.button.textContent = isMaxed ? "Maxed" : "Buy Upgrade"; upgradeRefs.item.classList.toggle("affordable", canBuyUpgrade(key)); if (key === "clickPower") { upgradeRefs.effect.textContent = `${formatNumber(getClickValue())} coins per click`; } if (key === "autoBall") { upgradeRefs.effect.textContent = `${formatNumber(getAutoClicksPerSecond())} auto-clicks / sec`; } if (key === "ballSpeed") { upgradeRefs.effect.textContent = `Bounce x${formatNumber(getBallSpeedMultiplier())} • Auto x${formatNumber(getAutoSpeedMultiplier())}`; } if (key === "ballCount") { upgradeRefs.effect.textContent = `${getBallCount()} ${getBallCount() === 1 ? "ball" : "balls"} • Auto x${getBallCount()}`; } } const prestigeGain = getPrestigeGain(); refs.prismCountBadge.textContent = `${formatNumber(state.prisms)} ${state.prisms === 1 ? "Prism" : "Prisms"}`; refs.prestigeEffect.textContent = `x${formatNumber(getPrestigeMultiplier())} permanent gain`; refs.runCoinsValue.textContent = `${formatNumber(state.runCoins)} run coins`; if (prestigeGain > 0) { refs.prestigeGain.textContent = `+${formatNumber(prestigeGain)} ${prestigeGain === 1 ? "Prism" : "Prisms"}`; refs.prestigeButton.disabled = false; refs.prestigeButton.textContent = `Prestige for +${formatNumber(prestigeGain)}`; } else { const needed = Math.max(0, getNextPrestigeThreshold() - state.runCoins); refs.prestigeGain.textContent = `Need ${formatNumber(needed)} more run coins`; refs.prestigeButton.disabled = true; refs.prestigeButton.textContent = "Prestige Locked"; } const affordable = Object.keys(upgradeDefs).some(key => canBuyUpgrade(key)); refs.maxAllTopButton.disabled = !affordable; refs.maxAllTopButton.title = affordable ? "Buy all currently affordable upgrades" : "No affordable upgrades right now"; updateShopToggle(); } function syncResponsiveLayout() { if (mobileMedia.matches) { document.body.classList.toggle("shop-open", mobileShopOpen); } else { document.body.classList.remove("shop-open"); } updateShopToggle(); } function setMobileShopOpen(open) { mobileShopOpen = open; syncResponsiveLayout(); window.setTimeout(() => { refreshPlayBounds(); updateAllBallSizes(); clampAllBallsToBounds(); }, 300); } function updateAutomation(deltaSeconds) { const autoRate = getAutoClicksPerSecond(); if (!(autoRate > 0)) return; autoClickBuffer += autoRate * deltaSeconds; const wholeClicks = Math.floor(autoClickBuffer); if (wholeClicks > 0) { autoClickBuffer -= wholeClicks; addCoins(wholeClicks * getClickValue()); } } function animate(now) { const deltaSeconds = Math.min((now - lastFrameTime) / 1000, 0.25); lastFrameTime = now; const bounceSpeed = getBallSpeedMultiplier(); for (const ball of balls) { const maxX = Math.max(0, playBounds.width - ball.size); const maxY = Math.max(0, playBounds.height - ball.size); const nextX = moveAxis(ball.x, ball.vx, ball.vx * bounceSpeed * deltaSeconds, maxX); const nextY = moveAxis(ball.y, ball.vy, ball.vy * bounceSpeed * deltaSeconds, maxY); ball.x = nextX.position; ball.vx = nextX.velocity; ball.y = nextY.position; ball.vy = nextY.velocity; renderBall(ball); } updateAutomation(deltaSeconds); saveAccumulator += deltaSeconds; uiAccumulator += deltaSeconds; if (saveAccumulator >= AUTO_SAVE_INTERVAL) { saveAccumulator = 0; saveState(); } if (uiDirty || uiAccumulator >= 0.1) { uiAccumulator = 0; renderUI(); uiDirty = false; } requestAnimationFrame(animate); } refs.upgrades.clickPower.button.addEventListener("click", () => buyUpgrade("clickPower")); refs.upgrades.autoBall.button.addEventListener("click", () => buyUpgrade("autoBall")); refs.upgrades.ballSpeed.button.addEventListener("click", () => buyUpgrade("ballSpeed")); refs.upgrades.ballCount.button.addEventListener("click", () => buyUpgrade("ballCount")); refs.maxAllTopButton.addEventListener("click", buyMaxAll); refs.prestigeButton.addEventListener("click", performPrestige); refs.hardResetButton.addEventListener("click", performHardReset); refs.shopToggle.addEventListener("click", () => setMobileShopOpen(!mobileShopOpen)); refs.closeShopButton.addEventListener("click", () => setMobileShopOpen(false)); refs.shopPanel.addEventListener("transitionend", () => { refreshPlayBounds(); updateAllBallSizes(); clampAllBallsToBounds(); }); if (typeof mobileMedia.addEventListener === "function") { mobileMedia.addEventListener("change", () => { if (!mobileMedia.matches) { mobileShopOpen = false; } syncResponsiveLayout(); refreshPlayBounds(); updateAllBallSizes(); clampAllBallsToBounds(); uiDirty = true; }); } else if (typeof mobileMedia.addListener === "function") { mobileMedia.addListener(() => { if (!mobileMedia.matches) { mobileShopOpen = false; } syncResponsiveLayout(); refreshPlayBounds(); updateAllBallSizes(); clampAllBallsToBounds(); uiDirty = true; }); } window.addEventListener("resize", () => { refreshPlayBounds(); updateAllBallSizes(); clampAllBallsToBounds(); uiDirty = true; }); document.addEventListener("visibilitychange", () => { if (document.hidden) { saveState(); } else { lastFrameTime = performance.now(); } }); window.addEventListener("pagehide", saveState); window.addEventListener("beforeunload", saveState); syncResponsiveLayout(); refreshPlayBounds(); syncBalls(); renderUI(); saveState(); requestAnimationFrame(animate); })(); </script>
+</body>
+
+</html>
