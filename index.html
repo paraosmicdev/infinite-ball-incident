@@ -851,21 +851,24 @@ body::before {
                 text-align: left;
             }
 #gameCredit {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 95;
+  position: fixed !important;
+  top: 12px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
 
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
-
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.55);
 
   pointer-events: none;
   user-select: none;
-}          #maxAllTopButton {
+  white-space: nowrap;
+}
+            #maxAllTopButton {
                 min-height: 34px;
                 padding: 0 10px;
                 font-size: 10px;
