@@ -852,15 +852,20 @@ body::before {
             }
 #gameCredit {
   position: fixed;
-  left: 12px;
-  bottom: 10px;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 95;
+
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.08em;
+
+  color: rgba(255,255,255,0.45);
+
   pointer-events: none;
-}
-            #maxAllTopButton {
+  user-select: none;
+}          #maxAllTopButton {
                 min-height: 34px;
                 padding: 0 10px;
                 font-size: 10px;
