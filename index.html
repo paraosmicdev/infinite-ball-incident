@@ -48,20 +48,17 @@ body::before {
   z-index: 90;
   pointer-events: none;
   border: 5px solid transparent;
-  border-radius: 0;
-  background:
-    linear-gradient(#000, #000) padding-box,
-    conic-gradient(
-      from 0deg,
-      #ff004c,
-      #ff8a00,
-      #fff200,
-      #00ff7b,
-      #00d5ff,
-      #7547ff,
-      #ff00c8,
-      #ff004c
-    ) border-box;
+  border-image: conic-gradient(
+    from 0deg,
+    #ff004c,
+    #ff8a00,
+    #fff200,
+    #00ff7b,
+    #00d5ff,
+    #7547ff,
+    #ff00c8,
+    #ff004c
+  ) 1;
   animation: borderRainbow 4s linear infinite;
   box-shadow:
     inset 0 0 28px rgba(255, 255, 255, 0.22),
